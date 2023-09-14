@@ -7,6 +7,6 @@ count=$[ $count + 1 ]
 num=$[ $num + $1]
 shift
 done
-avr=$[ $num/$count ]
+avr=$(bc<<<"scale=2;$num/$count")
 echo "Количество = $count"
-echo "Среднее арифметическое = $avr" 
+echo "Среднее арифметическое = $avr"
