@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
-  
+
   if (!with_files) {
       if (pipe(pipefd) == -1) {
           perror("pipe");
@@ -124,13 +124,11 @@ int main(int argc, char **argv) {
 
         if (with_files) {
           FILE *fp;
-          if((fp = fopen("data.txt", "w")) != NULL)
+          if((fp = fopen("data.txt", "a")) != NULL)
           {
-            fprintf(fp, "%d\n%d", min_max_w.min, min_max_w.max);
+            fwrite(&min_max_w, sizeof(struct MinMax), 1, fp);
             fclose(fp);
           }
-          //fwrite(&min_max_w, sizeof(struct MinMax), 1, f);
-          //fclose(f);
         } else {
           close(pipefd[0]);
           write(pipefd[1], &min_max_w, sizeof(struct MinMax));
@@ -156,27 +154,14 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < pnum; i++) {
     struct MinMax min_max_r;
-    int min = INT_MAX;
-    int max = INT_MIN;
-    int buf;
+
     if (with_files) {
       FILE *fp;
-      if((fp = fopen("minmax.data", "r")) != NULL) {
-        fscanf(fp, "%d", &buf);
-        if(buf < min)
-        {
-          min = buf;
-        }
-        fscanf(fp, "%d", &buf);
-        if(buf > max)
-        {
-          max = buf;
-        }
+      if((fp = fopen("data.txt", "r")) != NULL) {
+        fseek(fp, i * sizeof(struct MinMax), SEEK_SET);
+        fread(&min_max_r, sizeof(struct MinMax), 1, fp);
         fclose(fp);
       }
-      // fseek(f, i * sizeof(struct MinMax), SEEK_SET);
-      // fread(&local_min_max, sizeof(struct MinMax), 1, f);
-      // fclose(f);
     } else {
       close(pipefd[1]);
       read(pipefd[0], &min_max_r, sizeof(struct MinMax));
@@ -186,6 +171,7 @@ int main(int argc, char **argv) {
     if (min_max_r.max > min_max.max) min_max.max = min_max_r.max;
   }
 
+
   struct timeval finish_time;
   gettimeofday(&finish_time, NULL);
 
@@ -193,7 +179,7 @@ int main(int argc, char **argv) {
   elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
 
   free(array);
-
+  remove("data.txt");
   printf("Min: %d\n", min_max.min);
   printf("Max: %d\n", min_max.max);
   printf("Elapsed time: %fms\n", elapsed_time);
