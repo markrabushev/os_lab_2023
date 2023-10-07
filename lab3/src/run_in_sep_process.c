@@ -12,12 +12,9 @@ int main(int argc, char **argv) {
     pid_t pid = fork();
     if (pid == 0) {
         execl("./sequential_min_max", "sequential_min_max", argv[1], argv[2], NULL);
-    } else if (pid < 0) {
-        perror("Error");
-        return 1;
-    } else {
-        wait(NULL);
-    }
+    } 
+    
+    wait(2);
 
     return 0;
 }
