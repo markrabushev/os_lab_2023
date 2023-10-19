@@ -13,8 +13,7 @@ int main(int argc, char **argv) {
     if (pid == 0) {
         execl("./sequential_min_max", "sequential_min_max", argv[1], argv[2], NULL);
     } 
-    
-    wait(2);
+
 
     return 0;
 }

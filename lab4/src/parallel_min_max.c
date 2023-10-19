@@ -15,6 +15,16 @@
 #include "find_min_max.h"
 #include "utils.h"
 
+pid_t child_pids[16];
+int active_child_processes = 0;
+
+void kill_children() {
+    for (int i = 0; i < active_child_processes; i++) {
+        printf("Killing child %d\n", child_pids[i]);
+        kill(child_pids[i], SIGKILL);
+    }
+}
+
 int main(int argc, char **argv) {
   int seed = -1;
   int array_size = -1;
@@ -22,6 +32,7 @@ int main(int argc, char **argv) {
   int by_files = 0;
   bool with_files = false;
   int pipefd[2]; //0 - чтение, 1 - запись
+  int timeout = -1;
 
   while (true) {
     int current_optind = optind ? optind : 1;
@@ -30,6 +41,7 @@ int main(int argc, char **argv) {
                                       {"array_size", required_argument, 0, 0},
                                       {"pnum", required_argument, 0, 0},
                                       {"by_files", required_argument, 0, 0},
+                                      {"timeout", required_argument, 0, 0},
                                       {0, 0, 0, 0}};
 
     int option_index = 0;
@@ -69,6 +81,17 @@ int main(int argc, char **argv) {
             }
             with_files = by_files == 1 ? 1 : 0;
             break;
+          case 4:
+            if (optarg == NULL) {
+              timeout = 0;
+              break;
+            }
+            timeout = atoi(optarg);
+            if (timeout <= 0) {
+              printf("timeout is a positive number\n");
+              return 1;
+            }
+            break;
 
           defalut:
             printf("Index %d is out of options\n", option_index);
@@ -101,6 +124,9 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
+  signal(SIGALRM, &kill_children); 
+  alarm(timeout);
+
 
   if (!with_files) {
       if (pipe(pipefd) == -1) {
@@ -113,6 +139,7 @@ int main(int argc, char **argv) {
     pid_t child_pid = fork();
     if (child_pid >= 0) {
       // successful fork
+      child_pids[active_child_processes] = child_pid;
       active_child_processes += 1;
       if (child_pid == 0) {
         // child process
