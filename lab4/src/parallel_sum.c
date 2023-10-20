@@ -5,21 +5,8 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include "utils.h"  
-
-struct SumArgs {
-  int *array;
-  int begin;
-  int end;
-};
-
-int Sum(const struct SumArgs *args) {
-    int sum = 0;
-    for (int i = args->begin; i < args->end; ++i) {
-        sum += args->array[i];
-    }
-    return sum;
-}
+#include "sum.h"
+#include "utils.h"
 
 void *ThreadSum(void *args) {
   struct SumArgs *sum_args = (struct SumArgs *)args;
@@ -30,7 +17,6 @@ int main(int argc, char **argv) {
   uint32_t threads_num = 0;
   uint32_t array_size = 0;
   uint32_t seed = 0;
-  pthread_t threads[threads_num];
 
   static struct option options[] = {
             {"seed",        required_argument, 0, 0},
@@ -44,12 +30,24 @@ int main(int argc, char **argv) {
       switch (option_index) {
           case 0:
               seed = atoi(optarg);
+              if (seed <= 0) {
+                printf("seed is a positive number\n");
+                return 1;
+              }
               break;
           case 1:
-               array_size = atoi(optarg);
+              array_size = atoi(optarg);
+              if (array_size <= 0) {
+                printf("array_size is a positive number\n");
+                return 1;
+              }
                break;
           case 2:
-               threads_num = atoi(optarg);
+              threads_num = atoi(optarg);
+              if (array_size <= 0) {
+                printf("pnum is a positive number\n");
+                return 1;
+              }
                break;
 
           default:
@@ -62,23 +60,24 @@ int main(int argc, char **argv) {
       return 1;
   }
 
+  pthread_t threads[threads_num];
   int *array = malloc(sizeof(int) * array_size);
   GenerateArray(array, array_size, seed);
 
   struct SumArgs args[threads_num];
 
-  unsigned int chunk_size = array_size / threads_num;
+  unsigned int split_size = array_size / threads_num;
   for (uint32_t i = 0; i < threads_num; i++) {
       args[i].array = array;
-      args[i].begin = i * chunk_size;
-      args[i].end = (i == threads_num - 1) ? array_size : (i + 1) * chunk_size;
+      args[i].begin = i * split_size;
+      args[i].end = (i == threads_num - 1) ? array_size : (i + 1) * split_size;
   }
 
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
   for (uint32_t i = 0; i < threads_num; i++) {
-    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args)) {
+    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i])) {
       printf("Error: pthread_create failed!\n");
       return 1;
     }
@@ -100,6 +99,7 @@ int main(int argc, char **argv) {
 
   free(array);
   printf("Total: %d\n", total_sum);
-  printf("Time spent: %.5f milliseconds\n", elapsed_time);
+  //printf("Time spent: %.5f milliseconds\n", elapsed_time);
+  printf("Elapsed time: %fms\n", elapsed_time);
   return 0;
 }
