@@ -4,19 +4,21 @@
 #include <stdio.h>
 
 int main() {
-    pid_t child_pid;
-    child_pid = fork();
+    pid_t child_pid = fork();
 
-    if(child_pid > 0) {
-        printf("Parent process: sleep for 20 seconds, child: %d\n", child_pid);
-        sleep(20);
-        printf("Parent process: exit\n");
-    }
-    else {
-        printf("Child process: sleep for 10 seconds\n");
-        sleep(10);
-        printf("Child process: exit, becomes zombie\n");
+    if (child_pid > 0) {
+        printf("Родительский процесс\n");
+        sleep(10); 
+        wait(NULL); 
+        printf("Завершение родительского процесса\n");
+    } else if (child_pid == 0) {
+        printf("Дочерний процесс\n");
+        sleep(5);
+        printf("Завершение дочернего процесса\n");
         exit(0);
+    } else {
+        printf("Ошибка при создании дочернего процесса\n");
+        return 1;
     }
 
     return 0;

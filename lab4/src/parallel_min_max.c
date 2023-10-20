@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -15,12 +16,12 @@
 #include "find_min_max.h"
 #include "utils.h"
 
-pid_t child_pids[16];
+pid_t child_pids[64];
 int active_child_processes = 0;
 
 void kill_children() {
     for (int i = 0; i < active_child_processes; i++) {
-        printf("Killing child %d\n", child_pids[i]);
+        printf("Kill process %d\n", child_pids[i]);
         kill(child_pids[i], SIGKILL);
     }
 }
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
 
   int *array = malloc(sizeof(int) * array_size);
   GenerateArray(array, array_size, seed);
-  int active_child_processes = 0;
+  //int active_child_processes = 0;
 
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
@@ -169,6 +170,16 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
+  printf("children %d\n", active_child_processes);
+  // if (timeout != -1) {
+  //   // ожидание окончания заданного таймаута
+  //   //sleep(timeout);
+  //   // посылка сигнала SIGKILL всем дочерним процессам
+  //   for (int i = 0; i < active_child_processes; i++) {
+  //     printf("kill\n");
+  //     kill(child_pids[i], SIGKILL);
+  //   }
+  // }
 
   while (active_child_processes > 0) {
     wait(NULL);
