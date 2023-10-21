@@ -19,7 +19,7 @@
 pid_t child_pids[64];
 int active_child_processes = 0;
 
-void kill_children() {
+void kill_child() {
     for (int i = 0; i < active_child_processes; i++) {
         printf("Kill process %d\n", child_pids[i]);
         kill(child_pids[i], SIGKILL);
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
-  signal(SIGALRM, &kill_children); 
+  signal(SIGALRM, &kill_child); 
   alarm(timeout);
 
 
@@ -140,10 +140,16 @@ int main(int argc, char **argv) {
     pid_t child_pid = fork();
     if (child_pid >= 0) {
       // successful fork
-      child_pids[active_child_processes] = child_pid;
-      active_child_processes += 1;
+      if(child_pid != 0){
+        child_pids[active_child_processes] = child_pid;
+        active_child_processes += 1;
+        int status = 1;
+        waitpid(child_pid, &status, WNOHANG);
+      }
+      
       if (child_pid == 0) {
         // child process
+        
         unsigned int begin = i * (array_size / pnum);
         unsigned int end;
         if((i + 1) == pnum) end = array_size;
@@ -170,21 +176,11 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
-  printf("children %d\n", active_child_processes);
-  // if (timeout != -1) {
-  //   // ожидание окончания заданного таймаута
-  //   //sleep(timeout);
-  //   // посылка сигнала SIGKILL всем дочерним процессам
-  //   for (int i = 0; i < active_child_processes; i++) {
-  //     printf("kill\n");
-  //     kill(child_pids[i], SIGKILL);
-  //   }
-  // }
 
-  while (active_child_processes > 0) {
-    wait(NULL);
-    active_child_processes -= 1;
-  }
+  // while (active_child_processes > 0) {
+  //   //wait(NULL);
+  //   active_child_processes -= 1;
+  // }
 
   struct MinMax min_max;
   min_max.min = INT_MAX;
