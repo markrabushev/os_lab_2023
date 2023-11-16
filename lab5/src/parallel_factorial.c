@@ -13,31 +13,18 @@
 #include <sys/wait.h>
 
 #include <getopt.h>
-
+//gcc -pthread -o factorial parallel_factorial.c
 unsigned long k;   
 int pnum;
 unsigned long mod;
 unsigned long long result = 1;
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 
-// struct SumArgs {
-//     int *array;
-//     int begin;
-//     int end;
-// };
-// int Sum(const struct SumArgs *args) {
-//     int sum = 0;
-//     for (int i = args->begin; i < args->end; ++i) {
-//         sum += args->array[i];
-//     }
-//     return sum;
-// }
-
 struct FactorialBE {
     unsigned long begin, end;
 };
 
-int Factorial(const struct FactorialBE *args) {
+void Factorial(const struct FactorialBE *args) {
     unsigned long long partialResult = 1;
     for (unsigned long i = args->begin; i <= args->end; i++)
         partialResult = (partialResult * i) % mod;
@@ -45,11 +32,6 @@ int Factorial(const struct FactorialBE *args) {
     pthread_mutex_lock(&mut);
     result = (result * partialResult) % mod;
     pthread_mutex_unlock(&mut);
-    return 1;
-}
-void *ThreadFactorial(void *args) {
-  struct FactorialBE *f_args = (struct FactorialBE *)args;
-  return (void *)(size_t)Factorial(f_args);
 }
 
 int main(int argc, char **argv) {
@@ -111,9 +93,8 @@ int main(int argc, char **argv) {
   gettimeofday(&start_time, NULL);
 
   for (int i = 0; i < pnum; i++) {
-    pthread_create(&threads[i], NULL, ThreadFactorial, (void *)&args[i]);
+    pthread_create(&threads[i], NULL, (void *)Factorial, (void *)&args[i]);
   }
-
   for (int i = 0; i < pnum; i++) {
     pthread_join(threads[i], NULL);
   }
