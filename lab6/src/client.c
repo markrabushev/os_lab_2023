@@ -16,7 +16,7 @@
 
 uint64_t k = -1;
 uint64_t mod = -1;
-int servers_num = -1;
+int servers_number = -1;
 
 struct Server {
   char ip[255];
@@ -65,14 +65,24 @@ int parseServers(const char *servers, struct Server *to) {
     }
     int i = 0;
     char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        if (sscanf(line, "%[^:]:%d", to[i].ip, &to[i].port) != 2) {
-            printf("Failed to parse line: %s\n", line);
-            continue;
-        }
+    // while (fgets(line, sizeof(line), file)) {
+    //     if (sscanf(line, "%[^:]:%d", to[i].ip, &to[i].port) != 2) {
+    //         printf("Failed to parse line: %s\n", line);
+    //         continue;
+    //     }
 
+    //     to[i].number = i;
+    //     printf("Parsed: ip: %s, port: %d, number: %d\n", to[i].ip, to[i].port, to[i].number);
+    //     i++;
+    // }
+    while (fgets(line, sizeof(line), file)) {
+        char* ip = strtok(line, ":");
+        char* portStr = strtok(NULL, ":");
+        strncpy(to[i].ip, ip, sizeof(to[i].ip)-1);
+        to[i].ip[sizeof(to[i].ip)-1] = '\0';
+        to[i].port = atoi(portStr);
         to[i].number = i;
-        printf("Parsed: ip: %s, port: %d, number: %d\n", to[i].ip, to[i].port, to[i].number);
+        printf("Get from file: ip: %s, port: %d, number: %d\n", to[i].ip, to[i].port, to[i].number);
         i++;
     }
 
@@ -84,14 +94,14 @@ void startServer(int port, pid_t *child_pid) {
     pid_t pid = fork();
 
     if (pid == 0) {
-        if (!*child_pid)
-            setpgid(0, 0);
-        else setpgid(0, *child_pid);
+        // if (!*child_pid)
+        //     setpgid(0, 0);
+        // else setpgid(0, *child_pid);
 
-        char portChar[10];
-        sprintf(portChar, "%d", port);
+        char portName[10];
+        sprintf(portName, "%d", port);
 
-        execl("./server", "server", "--port", portChar, "--tnum", "5", NULL);
+        execl("./server", "server", "--port", portName, "--tnum", "5", NULL);
         perror("Failed to start server");
         exit(1);
     } else if (!*child_pid)
@@ -125,9 +135,9 @@ void *count(void *args) {
         exit(1);
     }
 
-    uint64_t partitionSize = k / servers_num;
+    uint64_t partitionSize = k / servers_number;
     uint64_t begin = threadNumber * partitionSize + 1;
-    uint64_t end = (threadNumber == servers_num - 1) ? k : begin + partitionSize - 1;
+    uint64_t end = (threadNumber == servers_number - 1) ? k : begin + partitionSize - 1;
 
     char task[sizeof(uint64_t) * 3];
     memcpy(task, &begin, sizeof(uint64_t));
@@ -176,20 +186,20 @@ int main(int argc, char **argv) {
       switch (option_index) {
       case 0:
         if (!ConvertStringToUI64(optarg, &k)) {
-          printf("k argument error\n");
+          printf("k error\n");
           return 1;
         }
         break;
       case 1:
         if (!ConvertStringToUI64(optarg, &mod)) {
-          printf("mod argument error\n");
+          printf("mod error\n");
           return 1;
         }
         break;
       case 2:
         memcpy(servers, optarg, strlen(optarg));
         if (!fopen(servers, "r")) {
-          printf("servers argument error\n");
+          printf("servers error\n");
           return 1;
         }
         break;
@@ -213,20 +223,20 @@ int main(int argc, char **argv) {
   }
 
   // TODO: for one server here, rewrite with servers from file
-  servers_num = countServers(servers);
-  struct Server *to = malloc(sizeof(struct Server) * servers_num);
+  servers_number = countServers(servers);
+  struct Server *to = malloc(sizeof(struct Server) * servers_number);
   if (parseServers(servers, to) == 1) {
     free(to);
     return 1;
   }
 
   pid_t child_pid = 0;
-    for (int i = 0; i < servers_num; i++)
+    for (int i = 0; i < servers_number; i++)
       startServer(to[i].port, &child_pid);
 
   
-  pthread_t threads[servers_num];
-  for (int i = 0; i < servers_num; i++) {
+  pthread_t threads[servers_number];
+  for (int i = 0; i < servers_number; i++) {
         printf("Thread %d is starting at %s:%d, pid = %d\n", i, to[i].ip, to[i].port, to[i].number);
         if (pthread_create(&threads[i], NULL, count, (void *) &to[i])) {
             printf("Error: pthread_create failed!\n");
@@ -235,7 +245,7 @@ int main(int argc, char **argv) {
   }
 
   uint64_t total = 1;
-  for (uint32_t i = 0; i < servers_num; i++) {
+  for (uint32_t i = 0; i < servers_number; i++) {
       uint64_t result = 0;
       pthread_join(threads[i], (void **) &result);
       total = MultModulo(total, result, mod);
