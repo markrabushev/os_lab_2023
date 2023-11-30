@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    //printf("Port: %d, Threads: %d\n", port, tnum);
+    printf("Port: %d, Threads: %d\n", port, tnum);
 
 
     struct sockaddr_in server;
