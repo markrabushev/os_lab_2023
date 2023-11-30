@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    printf("Port: %d, Threads: %d\n", port, tnum);
+    //printf("Port: %d, Threads: %d\n", port, tnum);
 
 
     struct sockaddr_in server;
@@ -173,19 +173,20 @@ int main(int argc, char **argv) {
                 args[i].begin = begin + i * partitionSize;
                 args[i].end = (i == tnum - 1) ? end : begin + (i + 1) * partitionSize - 1;
                 args[i].mod = mod;
-                printf("Factorial Thread %d, begin: %lu, end: %lu, mod: %lu\n", i, args[i].begin, args[i].end, args[i].mod);
+                //printf("Factorial Thread %d, begin: %lu, end: %lu, mod: %lu\n", i, args[i].begin, args[i].end, args[i].mod);
                 if (pthread_create(&threads[i], NULL, ThreadFactorial,
                                    (void *) &args[i])) {
                     printf("Error: pthread_create failed!\n");
                     return 1;
                 }
             }
+
             uint64_t total = 1;
             for (uint32_t i = 0; i < tnum; i++) {
                 uint64_t result = 0;
                 pthread_join(threads[i], (void **) &result);
                 total = MultModulo(total, result, mod);
-                printf("Thread %d, total: %lu, result: %lu\n", i, total, result);
+                //printf("Thread %d, total: %lu, result: %lu\n", i, total, result);
             }
 
 //            printf("Total: %llu\n", total);

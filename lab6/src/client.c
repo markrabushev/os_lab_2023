@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
         char portName[10];
         sprintf(portName, "%d", to[i].port);
 
-        execl("./server", "server", "--port", portName, "--tnum", "5", NULL);
+        execl("./server", "server", "--port", portName, "--tnum", "2", NULL);
         perror("Failed to start server");
         exit(1);
       }
