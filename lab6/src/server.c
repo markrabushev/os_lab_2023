@@ -180,7 +180,6 @@ int main(int argc, char **argv) {
                     return 1;
                 }
             }
-
             uint64_t total = 1;
             for (uint32_t i = 0; i < tnum; i++) {
                 uint64_t result = 0;

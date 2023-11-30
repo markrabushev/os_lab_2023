@@ -13,10 +13,13 @@
 #include <sys/time.h>
 
 #include "MultModulo.h"
-
+//./client --k 12 --mod 13 --servers servers.txt
 uint64_t k = -1;
 uint64_t mod = -1;
 int servers_number = -1;
+
+pid_t child_pids[64];
+int active_child_processes = 0;
 
 struct Server {
   char ip[255];
@@ -90,8 +93,11 @@ void start(int port, pid_t *child_pid) {
         execl("./server", "server", "--port", portName, "--tnum", "5", NULL);
         perror("Failed to start server");
         exit(1);
-    } else if (!*child_pid)
-        *child_pid = pid;
+    } else if (pid > 0) {
+        child_pids[active_child_processes] = pid;
+        active_child_processes += 1;
+    }
+
 }
 
 void *count(void *args) {
@@ -216,9 +222,32 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  pid_t child_pid = 0;
-  for (int i = 0; i < servers_number; i++)
-    start(to[i].port, &child_pid);
+  for (int i = 0; i < servers_number; i++) {
+    pid_t child_pid = fork();
+    if (child_pid >= 0) {
+      if(child_pid != 0){
+        child_pids[active_child_processes] = child_pid;
+        active_child_processes += 1;
+        int status = 1;
+        waitpid(child_pid, &status, WNOHANG);
+      }
+      if (child_pid == 0) {
+        char portName[10];
+        sprintf(portName, "%d", to[i].port);
+
+        execl("./server", "server", "--port", portName, "--tnum", "5", NULL);
+        perror("Failed to start server");
+        exit(1);
+      }
+
+    } else {
+      printf("Fork failed!\n");
+      return 1;
+    }
+  }
+  // pid_t child_pid = 0;
+  // for (int i = 0; i < servers_number; i++)
+  //   start(to[i].port, &child_pid);
 
   
   pthread_t threads[servers_number];
@@ -241,7 +270,9 @@ int main(int argc, char **argv) {
   free(to);
   
   printf("Stopping servers...\n");
-  kill(child_pid, SIGKILL);
+  for (int i = 0; i < active_child_processes; i++) {
+        kill(child_pids[i], SIGKILL);
+    }
   printf("Answer: %lu\n", total);
 
   return 0;
