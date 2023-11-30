@@ -239,9 +239,9 @@ int main(int argc, char **argv) {
   }
 
   free(to);
-
+  
   printf("Stopping servers...\n");
-  kill(-child_pid, SIGKILL);
+  kill(child_pid, SIGKILL);
   printf("Answer: %lu\n", total);
 
   return 0;
