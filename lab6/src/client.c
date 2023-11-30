@@ -57,7 +57,7 @@ int countServers(const char *filename) {
     return count;
 }
 
-int parseServers(const char *servers, struct Server *to) {
+int parse(const char *servers, struct Server *to) {
     FILE *file = fopen(servers, "r");
     if (!file) {
         perror("Failed to open file");
@@ -65,16 +65,6 @@ int parseServers(const char *servers, struct Server *to) {
     }
     int i = 0;
     char line[256];
-    // while (fgets(line, sizeof(line), file)) {
-    //     if (sscanf(line, "%[^:]:%d", to[i].ip, &to[i].port) != 2) {
-    //         printf("Failed to parse line: %s\n", line);
-    //         continue;
-    //     }
-
-    //     to[i].number = i;
-    //     printf("Parsed: ip: %s, port: %d, number: %d\n", to[i].ip, to[i].port, to[i].number);
-    //     i++;
-    // }
     while (fgets(line, sizeof(line), file)) {
         char* ip = strtok(line, ":");
         char* portStr = strtok(NULL, ":");
@@ -90,14 +80,10 @@ int parseServers(const char *servers, struct Server *to) {
     return 0;
 }
 
-void startServer(int port, pid_t *child_pid) {
+void start(int port, pid_t *child_pid) {
     pid_t pid = fork();
 
     if (pid == 0) {
-        // if (!*child_pid)
-        //     setpgid(0, 0);
-        // else setpgid(0, *child_pid);
-
         char portName[10];
         sprintf(portName, "%d", port);
 
@@ -225,14 +211,14 @@ int main(int argc, char **argv) {
   // TODO: for one server here, rewrite with servers from file
   servers_number = countServers(servers);
   struct Server *to = malloc(sizeof(struct Server) * servers_number);
-  if (parseServers(servers, to) == 1) {
+  if (parse(servers, to) == 1) {
     free(to);
     return 1;
   }
 
   pid_t child_pid = 0;
-    for (int i = 0; i < servers_number; i++)
-      startServer(to[i].port, &child_pid);
+  for (int i = 0; i < servers_number; i++)
+    start(to[i].port, &child_pid);
 
   
   pthread_t threads[servers_number];
