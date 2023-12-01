@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+//./tcpserver --bufsize 1024 --servport 20003
+//./tcpclient --bufsize 1024 --servaddr 127.0.0.1 --servport 20003
 #define SADDR struct sockaddr
 #define SIZE sizeof(struct sockaddr_in)
 
