@@ -14,6 +14,7 @@
 
 #include "MultModulo.h"
 //./client --k 12 --mod 13 --servers servers.txt
+//./client --k 100 --mod 202 --servers servers.txt
 uint64_t k = -1;
 uint64_t mod = -1;
 int servers_number = -1;
@@ -75,7 +76,6 @@ int parse(const char *servers, struct Server *to) {
         to[i].ip[sizeof(to[i].ip)-1] = '\0';
         to[i].port = atoi(portStr);
         to[i].number = i;
-        printf("Get from file: ip: %s, port: %d, number: %d\n", to[i].ip, to[i].port, to[i].number);
         i++;
     }
 
@@ -83,27 +83,10 @@ int parse(const char *servers, struct Server *to) {
     return 0;
 }
 
-void start(int port, pid_t *child_pid) {
-    pid_t pid = fork();
-
-    if (pid == 0) {
-        char portName[10];
-        sprintf(portName, "%d", port);
-
-        execl("./server", "server", "--port", portName, "--tnum", "5", NULL);
-        perror("Failed to start server");
-        exit(1);
-    } else if (pid > 0) {
-        child_pids[active_child_processes] = pid;
-        active_child_processes += 1;
-    }
-
-}
-
-void *count(void *args) {
+void *perform(void *args) {
     struct Server *to = (struct Server *) args;
     int threadNumber = to->number;
-    printf("Thread %d is trying to count at %s:%d\n", threadNumber, to->ip, to->port);
+
     struct hostent const *hostname = gethostbyname(to->ip);
     sleep(1);
     if (hostname == NULL) {
@@ -135,9 +118,8 @@ void *count(void *args) {
     memcpy(task, &begin, sizeof(uint64_t));
     memcpy(task + sizeof(uint64_t), &end, sizeof(uint64_t));
     memcpy(task + 2 * sizeof(uint64_t), &mod, sizeof(uint64_t));
-    printf("Thread %d sends %lu %lu %lu\n", threadNumber, begin, end, mod);
+    printf("Thread %d sends begin: %lu end: %lu mod: %lu to %s:%d\n", threadNumber, begin, end, mod, to->ip, to->port);
 
-    printf("Thread %d sends to %s:%d\n", threadNumber, to->ip, to->port);
     if (send(sck, task, sizeof(task), 0) < 0) {
         fprintf(stderr, "Send failed\n");
         exit(1);
@@ -151,7 +133,6 @@ void *count(void *args) {
     uint64_t answer = 0;
     memcpy(&answer, response, sizeof(uint64_t));
     close(sck);
-    printf("Thread %d receives %lu from %s:%d\n", threadNumber, answer, to->ip, to->port);
 
     return (void *) answer;
 }
@@ -235,7 +216,7 @@ int main(int argc, char **argv) {
         char portName[10];
         sprintf(portName, "%d", to[i].port);
 
-        execl("./server", "server", "--port", portName, "--tnum", "2", NULL);
+        execl("./server", "server", "--port", portName, "--tnum", "6", NULL);
         perror("Failed to start server");
         exit(1);
       }
@@ -245,15 +226,11 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
-  // pid_t child_pid = 0;
-  // for (int i = 0; i < servers_number; i++)
-  //   start(to[i].port, &child_pid);
-
   
   pthread_t threads[servers_number];
   for (int i = 0; i < servers_number; i++) {
-        printf("Thread %d is starting at %s:%d, pid = %d\n", i, to[i].ip, to[i].port, to[i].number);
-        if (pthread_create(&threads[i], NULL, count, (void *) &to[i])) {
+        printf("Thread %d is running at %s:%d\n", i, to[i].ip, to[i].port);
+        if (pthread_create(&threads[i], NULL, perform, (void *) &to[i])) {
             printf("Error: pthread_create failed!\n");
             return 1;
       }
@@ -264,7 +241,7 @@ int main(int argc, char **argv) {
       uint64_t result = 0;
       pthread_join(threads[i], (void **) &result);
       total = MultModulo(total, result, mod);
-        printf("Thread %d, total: %lu, result: %lu\n", i, total, result);
+      printf("Thread %d, total: %lu, result: %lu\n", i, total, result);
   }
 
   free(to);

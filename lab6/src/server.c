@@ -17,33 +17,18 @@ struct FactorialArgs {
     uint64_t mod;
 };
 
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ changes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// uint64_t Factorial(const struct FactorialArgs *data) {
-//     uint64_t ans = 1;
-// //    printf("begin: %lu, end: %lu, mod: %lu\n", data->begin, data->end, data->mod);
-
-//     for (uint64_t i = data->begin; i <= data->end; i++)
-//         ans = (ans * i) % data->mod;
-
-// //    printf("ans: %lu\n", ans);
-
-//     return ans;
-// }
 uint64_t Factorial(const struct FactorialArgs *args) {
-    unsigned long long partialResult = 1;
-    for (unsigned long long i = args->begin; i <= args->end; i++)
+    uint64_t partialResult = 1;
+    for (uint64_t i = args->begin; i <= args->end; i++)
         partialResult = (partialResult * i) % args->mod;
 
     return partialResult;
 }
 
-
 void *ThreadFactorial(void *args) {
     struct FactorialArgs const *fargs = (struct FactorialArgs *) args;
     return (void *) (uint64_t *) Factorial(fargs);
 }
-
 
 int main(int argc, char **argv) {
     int tnum = -1;
@@ -104,9 +89,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    //printf("Port: %d, Threads: %d\n", port, tnum);
-
-
     struct sockaddr_in server;
     server.sin_family = AF_INET;
     server.sin_port = htons((uint16_t) port);
@@ -164,8 +146,7 @@ int main(int argc, char **argv) {
             memcpy(&end, from_client + sizeof(uint64_t), sizeof(uint64_t));
             memcpy(&mod, from_client + 2 * sizeof(uint64_t), sizeof(uint64_t));
 
-            fprintf(stdout, "Receive at port %d: %lu %lu %lu\n", port, begin, end, mod);
-//            printf("Port: %d receives: %lu %lu %lu\n", port, begin, end, mod);
+            printf("Port: %d receives: %lu %lu %lu\n", port, begin, end, mod);
 
             struct FactorialArgs args[tnum];
             uint64_t partitionSize = (end - begin) / tnum + 1;
@@ -173,7 +154,6 @@ int main(int argc, char **argv) {
                 args[i].begin = begin + i * partitionSize;
                 args[i].end = (i == tnum - 1) ? end : begin + (i + 1) * partitionSize - 1;
                 args[i].mod = mod;
-                //printf("Factorial Thread %d, begin: %lu, end: %lu, mod: %lu\n", i, args[i].begin, args[i].end, args[i].mod);
                 if (pthread_create(&threads[i], NULL, ThreadFactorial,
                                    (void *) &args[i])) {
                     printf("Error: pthread_create failed!\n");
@@ -186,10 +166,7 @@ int main(int argc, char **argv) {
                 uint64_t result = 0;
                 pthread_join(threads[i], (void **) &result);
                 total = MultModulo(total, result, mod);
-                //printf("Thread %d, total: %lu, result: %lu\n", i, total, result);
             }
-
-//            printf("Total: %llu\n", total);
 
             char buffer[sizeof(total)];
             memcpy(buffer, &total, sizeof(total));
